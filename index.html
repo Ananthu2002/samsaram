@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samsaram · സംസാരം – Peer Support Calls</title>
+  <meta name="description" content="Anonymous peer support voice calls. Share your burden, lighten someone else's. Samsaram – talk, listen, heal." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Malayalam:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & tokens ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0f1a;
+      --surface:   #111827;
+      --card:      #161d2e;
+      --border:    rgba(255,255,255,.08);
+      --accent:    #7c6af7;
+      --accent2:   #50cfa8;
+      --accent3:   #f97066;
+      --text:      #e8eaf0;
+      --muted:     #6b7280;
+      --danger:    #ef4444;
+      --radius:    18px;
+      --transition: .25s cubic-bezier(.4,0,.2,1);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      overflow: hidden;
+    }
+
+    /* ── Animated background blobs ──────────────────────── */
+    .bg-blobs {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(90px); opacity: .18;
+      animation: float 12s ease-in-out infinite;
+    }
+    .blob-1 { width:520px; height:520px; top:-120px; left:-80px;
+               background: radial-gradient(circle, #7c6af7, #4338ca);
+               animation-delay: 0s; }
+    .blob-2 { width:380px; height:380px; bottom:-60px; right:-60px;
+               background: radial-gradient(circle, #50cfa8, #0d9488);
+               animation-delay: -4s; }
+    .blob-3 { width:280px; height:280px; top:50%; left:55%;
+               background: radial-gradient(circle, #f97066, #be185d);
+               animation-delay: -8s; opacity:.10; }
+    @keyframes float {
+      0%,100% { transform: translateY(0) scale(1); }
+      50%      { transform: translateY(-30px) scale(1.07); }
+    }
+
+    /* ── App shell ──────────────────────────────────────── */
+    #app {
+      position: relative; z-index: 1;
+      height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── Screens ────────────────────────────────────────── */
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: min(480px, 95vw);
+      max-height: 95vh;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .screen::-webkit-scrollbar { display: none; }
+    .screen.active { display: flex; }
+
+    /* ── Glass card ─────────────────────────────────────── */
+    .card {
+      background: rgba(22, 29, 46, .82);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      width: 100%;
+      box-shadow: 0 24px 60px rgba(0,0,0,.5);
+    }
+
+    /* ── Logo / brand ───────────────────────────────────── */
+    .brand {
+      text-align: center; margin-bottom: 8px;
+    }
+    .brand-icon {
+      width: 64px; height: 64px; margin: 0 auto 14px;
+      background: linear-gradient(135deg, #7c6af7, #50cfa8);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 8px 24px rgba(124,106,247,.35);
+    }
+    .brand-en {
+      font-size: 26px; font-weight: 700; letter-spacing: -.5px;
+      background: linear-gradient(90deg, #a78bfa, #50cfa8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .brand-ml {
+      font-family: 'Noto Sans Malayalam', sans-serif;
+      font-size: 15px; color: var(--muted); margin-top: 2px;
+    }
+    .brand-tagline {
+      font-size: 13px; color: var(--muted); margin-top: 6px;
+    }
+
+    /* ── Section heading ────────────────────────────────── */
+    .section-title {
+      font-size: 18px; font-weight: 600; margin-bottom: 18px;
+    }
+
+    /* ── Inputs ─────────────────────────────────────────── */
+    .field { margin-bottom: 16px; }
+    label { display: block; font-size: 12px; font-weight: 500;
+            color: var(--muted); margin-bottom: 6px; letter-spacing: .5px;
+            text-transform: uppercase; }
+    input[type="text"], textarea, select {
+      width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text); font-family: inherit; font-size: 14px;
+      outline: none; transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    input[type="text"]:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,106,247,.18);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    select option { background: #1e2535; }
+
+    /* ── Topic chips ─────────────────────────────────────── */
+    .topics {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px;
+    }
+    .topic-chip {
+      padding: 7px 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: all var(--transition);
+      user-select: none;
+    }
+    .topic-chip:hover  { border-color: var(--accent); color: var(--accent); }
+    .topic-chip.active {
+      background: linear-gradient(135deg, #7c6af7, #4338ca);
+      border-color: transparent; color: #fff;
+      box-shadow: 0 4px 12px rgba(124,106,247,.4);
+    }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn {
+      width: 100%; padding: 14px;
+      border: none; border-radius: 12px;
+      font-family: inherit; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all var(--transition);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c6af7, #4338ca);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(124,106,247,.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(124,106,247,.5); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #be123c);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(239,68,68,.3);
+    }
+    .btn-danger:hover { transform: translateY(-2px); }
+    .btn-ghost {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.1); color: var(--text); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+
+    /* ── Waiting screen ──────────────────────────────────── */
+    .pulse-ring {
+      width: 90px; height: 90px; position: relative; margin: 24px auto;
+    }
+    .pulse-ring::before, .pulse-ring::after {
+      content: '';
+      position: absolute; inset: -12px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      animation: pulse-out 2s ease-out infinite;
+    }
+    .pulse-ring::after { animation-delay: 1s; }
+    .pulse-core {
+      width: 90px; height: 90px; border-radius: 50%;
+      background: linear-gradient(135deg, #7c6af7, #4338ca);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 8px 28px rgba(124,106,247,.5);
+    }
+    @keyframes pulse-out {
+      0%   { transform: scale(.9); opacity: .8; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    /* ── Matched / pre-call ──────────────────────────────── */
+    .avatar {
+      width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 700;
+      color: #fff;
+    }
+    .match-card {
+      background: rgba(124,106,247,.1);
+      border: 1px solid rgba(124,106,247,.2);
+      border-radius: 12px;
+      padding: 18px; margin-bottom: 18px;
+      text-align: center;
+    }
+    .match-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .match-meta { font-size: 12px; color: var(--muted); }
+    .match-problem {
+      font-size: 13px; color: #c4b5fd; margin-top: 10px;
+      font-style: italic;
+    }
+    .tip-box {
+      background: rgba(80,207,168,.08);
+      border: 1px solid rgba(80,207,168,.2);
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 12px; color: #6ee7b7; margin-top: 14px;
+    }
+    .tip-box strong { display: block; margin-bottom: 4px; color: #50cfa8; }
+
+    /* ── Call screen ─────────────────────────────────────── */
+    #call-screen { gap: 0; }
+    .call-header {
+      text-align: center; padding: 28px 32px 20px;
+      background: rgba(22,29,46,.9);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0;
+      border-bottom: none; width: 100%;
+    }
+    .call-avatar {
+      width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 700; color: #fff;
+    }
+    .call-avatar.speaking {
+      box-shadow: 0 0 0 4px rgba(80,207,168,.6), 0 0 0 8px rgba(80,207,168,.2);
+      animation: speak-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes speak-pulse {
+      0%,100% { box-shadow: 0 0 0 4px rgba(80,207,168,.6), 0 0 0 8px rgba(80,207,168,.2); }
+      50%      { box-shadow: 0 0 0 6px rgba(80,207,168,.8), 0 0 0 14px rgba(80,207,168,.1); }
+    }
+    .call-name { font-size: 20px; font-weight: 700; }
+    .call-status { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .call-timer {
+      font-size: 32px; font-weight: 300; letter-spacing: 2px;
+      margin-top: 10px; color: var(--accent2);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .call-body {
+      background: rgba(22,29,46,.82);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      padding: 20px 28px 28px; width: 100%;
+    }
+
+    /* Turn indicator */
+    .turn-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px;
+      margin-bottom: 18px; font-size: 13px;
+    }
+    .turn-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      flex-shrink: 0; transition: background .4s;
+    }
+    .turn-dot.me  { background: var(--accent2); }
+    .turn-dot.them { background: var(--accent); }
+
+    /* Controls */
+    .call-controls {
+      display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px;
+      align-items: center;
+    }
+    .ctrl-btn {
+      padding: 12px; border-radius: 50%; border: 1px solid var(--border);
+      background: rgba(255,255,255,.06); cursor: pointer;
+      font-size: 20px; line-height: 1;
+      transition: all var(--transition);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ctrl-btn:hover { background: rgba(255,255,255,.12); }
+    .ctrl-btn.active { background: var(--accent); border-color: transparent; }
+    .end-btn {
+      padding: 16px; border-radius: 50%;
+      background: linear-gradient(135deg, #ef4444, #be123c);
+      border: none; cursor: pointer; font-size: 22px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(239,68,68,.4);
+      transition: all var(--transition);
+    }
+    .end-btn:hover { transform: scale(1.08); }
+
+    /* Tips carousel */
+    .tips-carousel {
+      margin-top: 18px;
+      background: rgba(80,207,168,.07);
+      border: 1px solid rgba(80,207,168,.15);
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 12px; color: #6ee7b7; min-height: 52px;
+    }
+    .tips-carousel strong { color: #50cfa8; display: block; margin-bottom: 3px; }
+
+    /* ── Rating screen ───────────────────────────────────── */
+    .stars { display: flex; gap: 10px; justify-content: center; margin: 18px 0; }
+    .star {
+      font-size: 32px; cursor: pointer; line-height: 1;
+      transition: transform .15s;
+      filter: grayscale(1) opacity(.5);
+    }
+    .star.lit { filter: none; }
+    .star:hover { transform: scale(1.2); }
+
+    /* ── Report / crisis ─────────────────────────────────── */
+    .crisis-banner {
+      background: rgba(239,68,68,.08);
+      border: 1px solid rgba(239,68,68,.2);
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 12px; color: #fca5a5; margin-top: 14px;
+    }
+    .crisis-banner strong { color: #f87171; display: block; margin-bottom: 3px; }
+
+    /* ── Utility ─────────────────────────────────────────── */
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-20 { margin-top: 20px; }
+    .text-muted { color: var(--muted); font-size: 13px; }
+    .text-center { text-align: center; }
+    .divider {
+      border: none; border-top: 1px solid var(--border); margin: 20px 0;
+    }
+    .badge {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 99px; font-size: 11px; font-weight: 600;
+    }
+    .badge-purple { background: rgba(124,106,247,.2); color: #a78bfa; }
+    .badge-green  { background: rgba(80,207,168,.2);  color: #50cfa8; }
+
+    /* ── Language toggle ─────────────────────────────────── */
+    .lang-toggle {
+      display: flex; gap: 6px; justify-content: center; margin-top: 14px;
+    }
+    .lang-btn {
+      padding: 5px 14px; border-radius: 99px;
+      border: 1px solid var(--border);
+      background: transparent; color: var(--muted);
+      font-size: 12px; cursor: pointer; font-family: inherit;
+      transition: all var(--transition);
+    }
+    .lang-btn.active {
+      background: rgba(124,106,247,.2); border-color: var(--accent); color: #c4b5fd;
+    }
+
+    /* ── Scrollbar ───────────────────────────────────────── */
+    * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+    /* ── Fade-in animation ───────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .screen.active { animation: fadeUp .35s ease; }
+  </style>
+</head>
+<body>
+
+<div class="bg-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+
+<div id="app">
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 1 · Welcome / Onboarding
+  ═══════════════════════════════════════════ -->
+  <div id="welcome-screen" class="screen active">
+    <div class="card">
+      <div class="brand">
+        <div class="brand-icon">🌿</div>
+        <div class="brand-en">Samsaram</div>
+        <div class="brand-ml">സംസാരം</div>
+        <div class="brand-tagline">Talk. Listen. Heal — anonymous peer support calls.</div>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="field">
+        <label>Your nickname</label>
+        <input id="name-input" type="text" placeholder="e.g. Arjun, Priya…" maxlength="24" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label>Preferred language</label>
+        <select id="lang-select">
+          <option value="any">Any language</option>
+          <option value="ml">Malayalam · മലയാളം</option>
+          <option value="en">English</option>
+          <option value="hi">Hindi · हिन्दी</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>What's on your mind?</label>
+        <div class="topics" id="topic-chips"></div>
+      </div>
+
+      <div class="field">
+        <label>Optional – share a bit more (private, shown only to your match)</label>
+        <textarea id="problem-input" placeholder="e.g. Feeling overwhelmed at work lately…"></textarea>
+      </div>
+
+      <button id="find-btn" class="btn btn-primary" onclick="startSearch()">
+        🔍 Find someone to talk to
+      </button>
+
+      <div class="crisis-banner" style="margin-top:16px">
+        <strong>Need immediate help?</strong>
+        iCall: <strong>9152987821</strong> &nbsp;·&nbsp; Tele-MANAS: <strong>14416</strong>
+        (free, 24 × 7)
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 2 · Waiting for match
+  ═══════════════════════════════════════════ -->
+  <div id="waiting-screen" class="screen">
+    <div class="card text-center">
+      <div class="brand-en" style="margin-bottom:4px">Finding your match…</div>
+      <div class="brand-ml">കാത്തിരിക്കൂ</div>
+
+      <div class="pulse-ring" style="margin:28px auto;">
+        <div class="pulse-core">🌿</div>
+      </div>
+
+      <p class="text-muted">Looking for someone who wants to listen about<br />
+        <strong id="waiting-topic" style="color:var(--accent)"></strong>
+      </p>
+      <p class="text-muted" style="margin-top:10px;font-size:12px">
+        Average wait: under 2 minutes
+      </p>
+
+      <hr class="divider" />
+      <button class="btn btn-ghost" onclick="cancelSearch()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 3 · Matched – ready to call
+  ═══════════════════════════════════════════ -->
+  <div id="matched-screen" class="screen">
+    <div class="card">
+      <div class="text-center" style="margin-bottom:20px">
+        <div class="badge badge-green" style="margin-bottom:12px">✓ Match found!</div>
+        <div id="peer-avatar" class="avatar" style="background:linear-gradient(135deg,#7c6af7,#4338ca)"></div>
+        <div class="match-name" id="peer-name-display"></div>
+        <div class="match-meta" id="peer-topic-display"></div>
+        <div class="match-problem" id="peer-problem-display"></div>
+      </div>
+
+      <div class="tip-box">
+        <strong>💡 Before you start</strong>
+        You each get turns to speak and listen. Be kind — the other person is going through something real too.
+      </div>
+
+      <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-primary" onclick="startCall()">📞 Start call</button>
+        <button class="btn btn-ghost" onclick="cancelSearch()">Not now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 4 · Active call
+  ═══════════════════════════════════════════ -->
+  <div id="call-screen" class="screen">
+    <div class="call-header">
+      <div id="call-avatar" class="call-avatar"></div>
+      <div class="call-name" id="call-peer-name"></div>
+      <div class="call-status" id="call-status-text">Connected · talking</div>
+      <div class="call-timer" id="call-timer">00:00</div>
+    </div>
+
+    <div class="call-body">
+      <div class="turn-bar">
+        <div class="turn-dot" id="turn-dot-me"></div>
+        <span id="turn-text" style="flex:1"></span>
+      </div>
+
+      <div class="call-controls">
+        <div style="display:flex;justify-content:flex-start">
+          <button class="ctrl-btn" id="mute-btn" title="Mute" onclick="toggleMute()">🎙️</button>
+        </div>
+        <button class="end-btn" onclick="endCall()" title="End call">📵</button>
+        <div style="display:flex;justify-content:flex-end">
+          <button class="ctrl-btn" id="speaker-btn" title="Speaker" onclick="toggleSpeaker()">🔊</button>
+        </div>
+      </div>
+
+      <div class="tips-carousel" id="tip-display">
+        <strong>🎧 Listening tip</strong>
+        <span id="tip-text">Don't offer advice unless asked. Just be present.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 5 · Post-call rating
+  ═══════════════════════════════════════════ -->
+  <div id="rating-screen" class="screen">
+    <div class="card text-center">
+      <div style="font-size:42px;margin-bottom:10px">🌿</div>
+      <div class="section-title">How was the call?</div>
+      <p class="text-muted">Your feedback helps us improve matches.</p>
+
+      <div class="stars" id="star-row">
+        <span class="star" data-v="1">⭐</span>
+        <span class="star" data-v="2">⭐</span>
+        <span class="star" data-v="3">⭐</span>
+        <span class="star" data-v="4">⭐</span>
+        <span class="star" data-v="5">⭐</span>
+      </div>
+
+      <div class="field" style="text-align:left">
+        <label>Anything to share? (optional)</label>
+        <textarea id="feedback-input" placeholder="It helped to just be heard…"></textarea>
+      </div>
+
+      <button class="btn btn-primary" onclick="submitRating()">Submit & finish</button>
+
+      <hr class="divider" />
+      <p class="text-muted" style="font-size:12px;margin-bottom:10px">
+        Was anything inappropriate or unsafe?
+      </p>
+      <button class="btn btn-ghost" onclick="showReport()" style="font-size:13px">
+        ⚠️ Report or block this person
+      </button>
+
+      <div class="crisis-banner">
+        <strong>Feeling worse after the call?</strong>
+        iCall: <strong>9152987821</strong> &nbsp;·&nbsp;
+        Tele-MANAS: <strong>14416</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 6 · Thank-you
+  ═══════════════════════════════════════════ -->
+  <div id="thanks-screen" class="screen">
+    <div class="card text-center">
+      <div style="font-size:56px;margin-bottom:12px">💚</div>
+      <div class="section-title">Thank you for being there.</div>
+      <p class="text-muted">
+        Every conversation plants a seed of connection.<br/>
+        <span style="font-family:'Noto Sans Malayalam',sans-serif;color:var(--accent2)">
+          ഓരോ സംസാരവും ഒരു ചുവടുവെപ്പ്.
+        </span>
+      </p>
+      <div style="margin-top:28px">
+        <button class="btn btn-primary" onclick="goHome()">Talk again</button>
+        <button class="btn btn-ghost mt-12" onclick="window.close()">Close</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<!-- Hidden audio element for remote stream -->
+<audio id="remote-audio" autoplay playsinline></audio>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  State
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let ws        = null;
+let pc        = null;
+let localStream = null;
+let myName    = '';
+let peerName  = '';
+let myTopic   = '';
+let isInitiator = false;
+let muted     = false;
+let timerInterval  = null;
+let turnInterval   = null;
+let tipInterval    = null;
+let callSeconds    = 0;
+let myTurn         = false;
+let selectedStars  = 0;
+
+// ── Topics ──────────────────────────────────
+const TOPICS = [
+  { id:'stress',   label:'😤 Work stress',   ml:'ജോലി സമ്മർദ്ദം' },
+  { id:'breakup',  label:'💔 Breakup',        ml:'ബ്രേക്കപ്പ്' },
+  { id:'family',   label:'🏠 Family',          ml:'കുടുംബം' },
+  { id:'loneliness',label:'🌑 Loneliness',    ml:'ഒറ്റപ്പെടൽ' },
+  { id:'exams',    label:'📚 Exams',           ml:'പരീക്ഷ' },
+  { id:'grief',    label:'🕊️ Grief',          ml:'ദുഃഖം' },
+  { id:'money',    label:'💸 Money',           ml:'പണം' },
+  { id:'health',   label:'💊 Health',          ml:'ആരോഗ്യം' },
+  { id:'career',   label:'🚀 Career',          ml:'കരിയർ' },
+  { id:'other',    label:'🌿 Other',           ml:'മറ്റുള്ളവ' },
+];
+
+const TIPS = [
+  'Don't offer advice unless asked. Just be present.',
+  'Reflect back: "It sounds like you're feeling…"',
+  'Avoid interrupting — silence is okay.',
+  'Ask open questions: "How long have you felt this way?"',
+  'Validate their feelings, even if you'd react differently.',
+  'Your job is to listen, not to fix.',
+  'Share your own experience only if it helps them feel less alone.',
+];
+
+// ── Avatar colours ───────────────────────────
+const AVATAR_COLORS = [
+  'linear-gradient(135deg,#7c6af7,#4338ca)',
+  'linear-gradient(135deg,#50cfa8,#0d9488)',
+  'linear-gradient(135deg,#f97066,#be185d)',
+  'linear-gradient(135deg,#f59e0b,#d97706)',
+  'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+];
+function avatarColor(name) {
+  let h = 0;
+  for (let c of name) h += c.charCodeAt(0);
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Init
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+document.addEventListener('DOMContentLoaded', () => {
+  // Render topic chips
+  const container = document.getElementById('topic-chips');
+  TOPICS.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'topic-chip';
+    el.textContent = t.label;
+    el.dataset.id = t.id;
+    el.onclick = () => selectTopic(t.id);
+    container.appendChild(el);
+  });
+
+  // Star rating
+  document.querySelectorAll('.star').forEach(s => {
+    s.onclick = () => rateStar(+s.dataset.v);
+  });
+
+  // Keyboard shortcut: Enter on name → focus textarea
+  document.getElementById('name-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('problem-input').focus();
+  });
+});
+
+function selectTopic(id) {
+  myTopic = id;
+  document.querySelectorAll('.topic-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.id === id);
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Screen navigation
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Search / matching
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function startSearch() {
+  myName = document.getElementById('name-input').value.trim();
+  if (!myName) { shake('name-input'); return; }
+  if (!myTopic) { alert('Please pick a topic.'); return; }
+
+  const lang    = document.getElementById('lang-select').value;
+  const problem = document.getElementById('problem-input').value.trim();
+
+  document.getElementById('waiting-topic').textContent =
+    TOPICS.find(t => t.id === myTopic)?.label || myTopic;
+
+  showScreen('waiting-screen');
+  connectWS(myName, myTopic, lang, problem);
+}
+
+function cancelSearch() {
+  if (ws) { ws.send(JSON.stringify({ type: 'cancel' })); ws.close(); ws = null; }
+  goHome();
+}
+
+function goHome() {
+  stopTimers();
+  showScreen('welcome-screen');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  WebSocket
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function connectWS(name, topic, language, problem) {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type:'join', name, topic, language, problem }));
+  };
+
+  ws.onmessage = async ({ data }) => {
+    const msg = JSON.parse(data);
+    switch (msg.type) {
+
+      case 'waiting':
+        // Already showing waiting screen
+        break;
+
+      case 'matched':
+        peerName    = msg.peerName;
+        isInitiator = msg.initiator;
+
+        document.getElementById('peer-avatar').textContent   = peerName[0].toUpperCase();
+        document.getElementById('peer-avatar').style.background = avatarColor(peerName);
+        document.getElementById('peer-name-display').textContent = peerName;
+        document.getElementById('peer-topic-display').textContent =
+          `Wants to talk about: ${TOPICS.find(t=>t.id===msg.peerTopic)?.label || msg.peerTopic}`;
+        document.getElementById('peer-problem-display').textContent =
+          msg.peerProblem ? `"${msg.peerProblem}"` : '';
+
+        showScreen('matched-screen');
+        break;
+
+      case 'offer':
+        if (!pc) await setupPeer();
+        await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        ws.send(JSON.stringify({ type:'answer', sdp: pc.localDescription }));
+        break;
+
+      case 'answer':
+        await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+        break;
+
+      case 'ice':
+        if (msg.candidate) await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+        break;
+
+      case 'peer_left':
+        document.getElementById('call-status-text').textContent = `${peerName} left the call`;
+        setTimeout(() => showRating(), 1500);
+        break;
+    }
+  };
+
+  ws.onerror = () => {
+    alert('Connection error. Make sure the server is running (npm start).');
+    goHome();
+  };
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  WebRTC
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function setupPeer() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch {
+    alert('Microphone access denied. Please allow it and try again.');
+    return;
+  }
+
+  pc = new RTCPeerConnection({
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+  });
+
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+  pc.onicecandidate = ({ candidate }) => {
+    if (candidate) ws.send(JSON.stringify({ type:'ice', candidate }));
+  };
+
+  pc.ontrack = ({ streams }) => {
+    document.getElementById('remote-audio').srcObject = streams[0];
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (['disconnected','failed','closed'].includes(pc.connectionState)) {
+      document.getElementById('call-status-text').textContent = 'Connection lost';
+      setTimeout(() => showRating(), 1500);
+    }
+  };
+}
+
+async function startCall() {
+  showScreen('call-screen');
+
+  // Set up call UI
+  document.getElementById('call-avatar').textContent     = peerName[0].toUpperCase();
+  document.getElementById('call-avatar').style.background = avatarColor(peerName);
+  document.getElementById('call-peer-name').textContent  = peerName;
+  document.getElementById('call-status-text').textContent = 'Connecting…';
+
+  await setupPeer();
+  if (!pc) return;
+
+  if (isInitiator) {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({ type:'offer', sdp: pc.localDescription }));
+  }
+
+  // Wait a tick for connection, then update status
+  setTimeout(() => {
+    document.getElementById('call-status-text').textContent = 'Connected · talking';
+    startTimers();
+  }, 1200);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Call timers
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function startTimers() {
+  callSeconds = 0;
+
+  // Clock
+  timerInterval = setInterval(() => {
+    callSeconds++;
+    const m = String(Math.floor(callSeconds / 60)).padStart(2,'0');
+    const s = String(callSeconds % 60).padStart(2,'0');
+    document.getElementById('call-timer').textContent = `${m}:${s}`;
+  }, 1000);
+
+  // Turn: 5-minute turns (300 s) in real app; 60 s here
+  const TURN_SECS = 60;
+  myTurn = isInitiator;
+  updateTurnUI();
+  turnInterval = setInterval(() => {
+    myTurn = !myTurn;
+    updateTurnUI();
+  }, TURN_SECS * 1000);
+
+  // Tip carousel
+  let tipIdx = 0;
+  document.getElementById('tip-text').textContent = TIPS[tipIdx];
+  tipInterval = setInterval(() => {
+    tipIdx = (tipIdx + 1) % TIPS.length;
+    document.getElementById('tip-text').textContent = TIPS[tipIdx];
+  }, 15000);
+}
+
+function updateTurnUI() {
+  const dot  = document.getElementById('turn-dot-me');
+  const text = document.getElementById('turn-text');
+  const avatar = document.getElementById('call-avatar');
+  if (myTurn) {
+    dot.className  = 'turn-dot me';
+    text.textContent = `Your turn to speak, ${myName}`;
+    avatar.classList.remove('speaking');
+  } else {
+    dot.className  = 'turn-dot them';
+    text.textContent = `${peerName}'s turn — listen 🎧`;
+    avatar.classList.add('speaking');
+  }
+}
+
+function stopTimers() {
+  clearInterval(timerInterval);
+  clearInterval(turnInterval);
+  clearInterval(tipInterval);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Controls
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function toggleMute() {
+  if (!localStream) return;
+  muted = !muted;
+  localStream.getAudioTracks().forEach(t => t.enabled = !muted);
+  document.getElementById('mute-btn').textContent = muted ? '🔇' : '🎙️';
+  document.getElementById('mute-btn').classList.toggle('active', muted);
+}
+
+function toggleSpeaker() {
+  const btn = document.getElementById('speaker-btn');
+  btn.classList.toggle('active');
+}
+
+function endCall() {
+  if (ws) ws.send(JSON.stringify({ type:'hangup' }));
+  stopTimers();
+  cleanup();
+  showRating();
+}
+
+function cleanup() {
+  if (pc) { pc.close(); pc = null; }
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+}
+
+function showRating() {
+  stopTimers();
+  cleanup();
+  showScreen('rating-screen');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Rating
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function rateStar(v) {
+  selectedStars = v;
+  document.querySelectorAll('.star').forEach(s => {
+    s.classList.toggle('lit', +s.dataset.v <= v);
+  });
+}
+
+function submitRating() {
+  // In a real app: POST rating to server
+  showScreen('thanks-screen');
+}
+
+function showReport() {
+  const reason = prompt('Briefly describe what happened (this is sent to moderators):');
+  if (reason) {
+    alert('Report submitted. Thank you for keeping Samsaram safe. ❤️');
+    showScreen('thanks-screen');
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Utility
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function shake(id) {
+  const el = document.getElementById(id);
+  el.style.animation = 'none';
+  el.offsetHeight; // reflow
+  el.style.animation = 'shake .3s ease';
+  el.style.borderColor = '#ef4444';
+  setTimeout(() => { el.style.borderColor = ''; }, 1500);
+}
+</script>
+</body>
+</html>
